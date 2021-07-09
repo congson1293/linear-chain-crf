@@ -119,30 +119,30 @@ class CRF(nn.Module):
         """Compute the scores for a given batch of emissions with their tags.
 
         Args:
-            emissions (torch.Tensor): (batch_size, seq_len, nb_labels)
-            tags (Torch.LongTensor): (batch_size, seq_len)
-            mask (Torch.FloatTensor): (batch_size, seq_len)
+            emissions (torch.Tensor): (batch_size, seq_len, nb_labels) [BxLxC]
+            tags (Torch.LongTensor): (batch_size, seq_len) [BxL]
+            mask (Torch.FloatTensor): (batch_size, seq_len) [BxL]
 
         Returns:
             torch.Tensor: Scores for each batch.
-                Shape of (batch_size,)
+                Shape of (batch_size,) [B]
         """
         batch_size, seq_length = tags.shape
-        scores = torch.zeros(batch_size)
+        scores = torch.zeros(batch_size) # [B]
 
         # save first and last tags to be used later
-        first_tags = tags[:, 0]
-        last_valid_idx = mask.int().sum(1) - 1
-        last_tags = tags.gather(1, last_valid_idx.unsqueeze(1)).squeeze()
+        first_tags = tags[:, 0] # [B]
+        last_valid_idx = mask.int().sum(1) - 1 # [B]
+        last_tags = tags.gather(1, last_valid_idx.unsqueeze(1)).squeeze() # [B]
 
         # add the transition from BOS to the first tags for each batch
-        t_scores = self.transitions[self.BOS_TAG_ID, first_tags]
+        t_scores = self.transitions[self.BOS_TAG_ID, first_tags] # [B]
 
         # add the [unary] emission scores for the first tags for each batch
         # for all batches, the first word, see the correspondent emissions
         # for the first tags (which is a list of ids):
         # emissions[:, 0, [tag_1, tag_2, ..., tag_nblabels]]
-        e_scores = emissions[:, 0].gather(1, first_tags.unsqueeze(1)).squeeze()
+        e_scores = emissions[:, 0].gather(1, first_tags.unsqueeze(1)).squeeze() # [B]
 
         # the scores for a word is just the sum of both scores
         scores += e_scores + t_scores
@@ -153,20 +153,20 @@ class CRF(nn.Module):
             # we could: iterate over batches, check if we reached a mask symbol
             # and stop the iteration, but vecotrizing is faster due to gpu,
             # so instead we perform an element-wise multiplication
-            is_valid = mask[:, i]
+            is_valid = mask[:, i] # [B]
 
-            previous_tags = tags[:, i - 1]
-            current_tags = tags[:, i]
+            previous_tags = tags[:, i - 1] # [B]
+            current_tags = tags[:, i] # [B]
 
             # calculate emission and transition scores as we did before
-            e_scores = emissions[:, i].gather(1, current_tags.unsqueeze(1)).squeeze()
-            t_scores = self.transitions[previous_tags, current_tags]
+            e_scores = emissions[:, i].gather(1, current_tags.unsqueeze(1)).squeeze() # [B]
+            t_scores = self.transitions[previous_tags, current_tags] # [B]
 
             # apply the mask
-            e_scores = e_scores * is_valid
-            t_scores = t_scores * is_valid
+            e_scores = e_scores * is_valid # [B]
+            t_scores = t_scores * is_valid # [B]
 
-            scores += e_scores + t_scores
+            scores += e_scores + t_scores # [B]
 
         # add the transition from the end tag to the EOS tag for each batch
         scores += self.transitions[last_tags, self.EOS_TAG_ID]
@@ -187,7 +187,7 @@ class CRF(nn.Module):
         batch_size, seq_length, nb_labels = emissions.shape
 
         # in the first iteration, BOS will have all the scores
-        alphas = self.transitions[self.BOS_TAG_ID, :].unsqueeze(0) + emissions[:, 0]
+        alphas = self.transitions[self.BOS_TAG_ID, :].unsqueeze(0) + emissions[:, 0] # [BxC]
 
         for i in range(1, seq_length):
             alpha_t = []

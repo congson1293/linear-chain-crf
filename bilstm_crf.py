@@ -26,6 +26,7 @@ class BiLSTM_CRF(nn.Module):
         score, path = self.crf.decode(emissions, mask=mask)
         return score, path
 
+
     def loss(self, x, y, mask=None):
         emissions = self.lstm(x)
         nll = self.crf(emissions, y, mask=mask)
