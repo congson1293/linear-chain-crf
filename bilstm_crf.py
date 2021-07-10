@@ -1,11 +1,7 @@
-from torch import nn
+from torch import nn, ByteTensor
 from constants import Const
 from simple_lstm import SimpleLSTM
-from crf import CRF
-
-# or try the vectorized version:
-# from crf_vectorized import CRF
-
+from torchcrf import CRF
 
 class BiLSTM_CRF(nn.Module):
     def __init__(self, vocab_size, nb_labels, emb_dim=5, hidden_dim=4):
@@ -13,18 +9,13 @@ class BiLSTM_CRF(nn.Module):
         self.lstm = SimpleLSTM(
             vocab_size, nb_labels, emb_dim=emb_dim, hidden_dim=hidden_dim
         )
-        self.crf = CRF(
-            nb_labels,
-            Const.BOS_TAG_ID,
-            Const.EOS_TAG_ID,
-            pad_tag_id=Const.PAD_TAG_ID,  # try setting pad_tag_id to None
-            batch_first=True,
-        )
+        self.crf = CRF(nb_labels, batch_first=True)
+        self.crf.reset_parameters()
 
     def forward(self, x, mask=None):
         emissions = self.lstm(x)
-        score, path = self.crf.decode(emissions, mask=mask)
-        return score, path
+        path = self.crf.decode(emissions, mask=mask)
+        return path
 
 
     def loss(self, x, y, mask=None):

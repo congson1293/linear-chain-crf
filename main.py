@@ -82,7 +82,7 @@ if __name__ == "__main__":
     x_tags[1, : x_tags_2.shape[0]] = x_tags_2
 
     # mask tensor with shape (batch_size, max_sent_size)
-    mask = (x_tags != Const.PAD_TAG_ID).float()
+    mask = (x_tags != Const.PAD_TAG_ID)
 
     # get a reversed dict mapping int to str
     ix_to_tag = {ix: tag for tag, ix in tag_to_ix.items()}
@@ -94,10 +94,10 @@ if __name__ == "__main__":
     # Check predictions before training
     print('Predictions before training:')
     with torch.no_grad():
-        scores, seqs = model(x_sent, mask=mask)
-        for score, seq in zip(scores, seqs):
+        seqs = model(x_sent, mask=mask)
+        for seq in seqs:
             str_seq = " ".join(ids_to_tags(seq, ix_to_tag))
-            print('%.2f: %s' % (score.item(), str_seq))
+            print(f'{str_seq}')
 
     # Make sure prepare_sequence from earlier in the LSTM section is loaded
     for epoch in range(300):  # normally you would NOT do 300 epochs, it is toy data
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # Check predictions after training
     print('Predictions after training:')
     with torch.no_grad():
-        scores, seqs = model(x_sent, mask=mask)
-        for score, seq in zip(scores, seqs):
+        seqs = model(x_sent, mask=mask)
+        for seq in seqs:
             str_seq = " ".join(ids_to_tags(seq, ix_to_tag))
-            print('%.2f: %s' % (score.item(), str_seq))
+            print('%s' % (str_seq))
