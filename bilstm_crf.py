@@ -1,7 +1,6 @@
-from torch import nn, ByteTensor
-from constants import Const
+from torch import nn
 from simple_lstm import SimpleLSTM
-from torchcrf import CRF
+from torchcrf import CRF # https://pytorch-crf.readthedocs.io/en/stable/#
 
 class BiLSTM_CRF(nn.Module):
     def __init__(self, vocab_size, nb_labels, emb_dim=5, hidden_dim=4):
