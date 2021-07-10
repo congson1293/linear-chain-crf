@@ -20,5 +20,5 @@ class BiLSTM_CRF(nn.Module):
 
     def loss(self, x, y, mask=None):
         emissions = self.lstm(x)
-        nll = self.crf(emissions, y, mask=mask)
+        nll = -self.crf(emissions, y, mask=mask)
         return nll
