@@ -18,7 +18,7 @@ class CRF(nn.Module):
     """
 
     def __init__(
-        self, nb_labels, bos_tag_id, eos_tag_id, pad_tag_id=None, batch_first=True
+            self, nb_labels, bos_tag_id, eos_tag_id, pad_tag_id=None, batch_first=True
     ):
         super().__init__()
 
@@ -128,45 +128,44 @@ class CRF(nn.Module):
                 Shape of (batch_size,) [B]
         """
         batch_size, seq_length = tags.shape
-        scores = torch.zeros(batch_size) # [B]
+        scores = torch.zeros(batch_size)  # [B]
 
         # save first and last tags to be used later
-        first_tags = tags[:, 0] # [B]
-        last_valid_idx = mask.int().sum(1) - 1 # [B]
-        last_tags = tags.gather(1, last_valid_idx.unsqueeze(1)).squeeze() # [B]
+        first_tags = tags[:, 0]  # [B]
+        last_valid_idx = mask.int().sum(1) - 1  # [B]
+        last_tags = tags.gather(1, last_valid_idx.unsqueeze(1)).squeeze()  # [B]
 
         # add the transition from BOS to the first tags for each batch
-        t_scores = self.transitions[self.BOS_TAG_ID, first_tags] # [B]
+        t_scores = self.transitions[self.BOS_TAG_ID, first_tags]  # [B]
 
         # add the [unary] emission scores for the first tags for each batch
         # for all batches, the first word, see the correspondent emissions
         # for the first tags (which is a list of ids):
         # emissions[:, 0, [tag_1, tag_2, ..., tag_nblabels]]
-        e_scores = emissions[:, 0].gather(1, first_tags.unsqueeze(1)).squeeze() # [B]
+        e_scores = emissions[:, 0].gather(1, first_tags.unsqueeze(1)).squeeze()  # [B]
 
         # the scores for a word is just the sum of both scores
         scores += e_scores + t_scores
 
         # now lets do this for each remaining word
         for i in range(1, seq_length):
-
             # we could: iterate over batches, check if we reached a mask symbol
             # and stop the iteration, but vecotrizing is faster due to gpu,
             # so instead we perform an element-wise multiplication
-            is_valid = mask[:, i] # [B]
+            is_valid = mask[:, i]  # [B]
 
-            previous_tags = tags[:, i - 1] # [B]
-            current_tags = tags[:, i] # [B]
+            previous_tags = tags[:, i - 1]  # [B]
+            current_tags = tags[:, i]  # [B]
 
             # calculate emission and transition scores as we did before
-            e_scores = emissions[:, i].gather(1, current_tags.unsqueeze(1)).squeeze() # [B]
-            t_scores = self.transitions[previous_tags, current_tags] # [B]
+            e_scores = emissions[:, i].gather(1, current_tags.unsqueeze(1)).squeeze()  # [B]
+            t_scores = self.transitions[previous_tags, current_tags]  # [B]
 
             # apply the mask
-            e_scores = e_scores * is_valid # [B]
-            t_scores = t_scores * is_valid # [B]
+            e_scores = e_scores * is_valid  # [B]
+            t_scores = t_scores * is_valid  # [B]
 
-            scores += e_scores + t_scores # [B]
+            scores += e_scores + t_scores  # [B]
 
         # add the transition from the end tag to the EOS tag for each batch
         scores += self.transitions[last_tags, self.EOS_TAG_ID]
@@ -187,13 +186,12 @@ class CRF(nn.Module):
         batch_size, seq_length, nb_labels = emissions.shape
 
         # in the first iteration, BOS will have all the scores
-        alphas = self.transitions[self.BOS_TAG_ID, :].unsqueeze(0) + emissions[:, 0] # [BxC]
+        alphas = self.transitions[self.BOS_TAG_ID, :].unsqueeze(0) + emissions[:, 0]  # [BxC]
 
         for i in range(1, seq_length):
             alpha_t = []
 
             for tag in range(nb_labels):
-
                 # get the emission for the current tag
                 e_scores = emissions[:, i, tag]
 
@@ -222,6 +220,8 @@ class CRF(nn.Module):
             new_alphas = torch.stack(alpha_t).t()
 
             # set alphas if the mask is valid, otherwise keep the current values
+            # we are changing the current values of alpha by new ones if we didn’t reach a pad position,
+            # and keeping the same values if we reach a pad position
             is_valid = mask[:, i].unsqueeze(-1)
             alphas = is_valid * new_alphas + (1 - is_valid) * alphas
 
@@ -257,7 +257,6 @@ class CRF(nn.Module):
             backpointers_t = []
 
             for tag in range(nb_labels):
-
                 # get the emission for the current tag and broadcast to all labels
                 e_scores = emissions[:, i, tag]
                 e_scores = e_scores.unsqueeze(1)
@@ -302,7 +301,6 @@ class CRF(nn.Module):
         best_sequences = []
         emission_lengths = mask.int().sum(dim=1)
         for i in range(batch_size):
-
             # recover the original sentence length for the i-th sample in the batch
             sample_length = emission_lengths[i].item()
 
@@ -340,7 +338,6 @@ class CRF(nn.Module):
 
         # traverse the backpointers in backwards
         for backpointers_t in reversed(backpointers):
-
             # recover the best_tag at this timestep
             best_tag = backpointers_t[best_tag][sample_id].item()
 
