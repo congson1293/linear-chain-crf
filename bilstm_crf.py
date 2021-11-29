@@ -9,7 +9,7 @@ class BiLSTM_CRF(nn.Module):
             vocab_size, nb_labels, emb_dim=emb_dim, hidden_dim=hidden_dim
         )
         self.crf = CRF(nb_labels, batch_first=True)
-        self.crf.reset_parameters()
+
 
     def forward(self, x, mask=None):
         emissions = self.lstm(x)
